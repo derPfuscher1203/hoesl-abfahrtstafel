@@ -1,5 +1,5 @@
 {
-  "$comment": "Mehrere Tafeln, jede unter /<id> erreichbar. Pro Station: 'walkMinutes' = Gehzeit zur Station. 'directions.<TYP>.exclude' blendet Ziele aus (Teilstring, Groß-/Kleinschreibung und Umlaute egal), 'include' lässt nur passende Ziele durch. 'query'/'place' steuern die MVG-Stationssuche, 'globalId' überspringt sie.",
+  "$comment": "Mehrere Tafeln, jede unter /<id> erreichbar. Pro Station: 'walkMinutes' = Gehzeit zur Station. 'directions.<TYP>.exclude' blendet Ziele aus (Teilstring, Groß-/Kleinschreibung und Umlaute egal), 'include' lässt nur passende Ziele durch. 'query'/'place' steuern die MVG-Stationssuche, 'globalId' überspringt sie. 'slug' macht eine Station zusätzlich einzeln unter /<tafel>/<slug> erreichbar.",
   "refreshSeconds": 30,
   "boards": [
     {
@@ -99,7 +99,8 @@
       "departuresPerStation": 8,
       "stations": [
         {
-          "name": "Haar · Richtung München",
+          "name": "Richtung München",
+          "slug": "stadteinwaerts",
           "query": "Haar",
           "place": "Haar",
           "walkMinutes": 12,
@@ -118,7 +119,8 @@
           }
         },
         {
-          "name": "Haar · Richtung Grafing",
+          "name": "Richtung Grafing",
+          "slug": "stadtauswaerts",
           "query": "Haar",
           "place": "Haar",
           "walkMinutes": 12,

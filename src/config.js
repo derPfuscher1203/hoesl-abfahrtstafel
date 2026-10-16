@@ -15,8 +15,10 @@ export async function loadConfig(path = process.env.CONFIG_PATH || DEFAULT_CONFI
 function validateStation(s, where) {
   if (!s?.name) throw new Error(`${where} hat keinen "name".`);
   const walk = Number(s.walkMinutes);
+  if (s.slug != null && !/^[A-Za-z0-9_-]+$/.test(s.slug)) throw new Error(`${where}: "slug" darf nur Buchstaben, Ziffern, - und _ enthalten.`);
   return {
     name: s.name,
+    slug: s.slug || null,
     query: s.query || s.name,
     place: s.place || null,
     globalId: s.globalId || null,
@@ -40,6 +42,16 @@ function validateBoard(b, defaults, index) {
   };
 }
 
+function checkSlugs(board) {
+  const seen = new Set();
+  for (const s of board.stations) {
+    if (!s.slug) continue;
+    const key = s.slug.toLowerCase();
+    if (seen.has(key)) throw new Error(`Slug "${s.slug}" ist in Tafel "${board.id}" doppelt.`);
+    seen.add(key);
+  }
+}
+
 export function validateConfig(raw) {
   if (!raw || typeof raw !== 'object') throw new Error('Konfiguration ist leer.');
   const defaults = {
@@ -53,6 +65,7 @@ export function validateConfig(raw) {
     throw new Error('Konfiguration braucht mindestens eine Tafel in "boards" mit mindestens einer Station.');
   }
   const boards = rawBoards.map((b, i) => validateBoard(b, defaults, i));
+  boards.forEach(checkSlugs);
   const ids = new Set();
   for (const b of boards) {
     const key = b.id.toLowerCase();

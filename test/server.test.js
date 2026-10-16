@@ -3,15 +3,28 @@ import assert from 'node:assert/strict';
 import { createApp, VERSION } from '../src/server.js';
 
 const boardList = [
-  { id: 'hoeslhome', title: 'Abfahrten stadteinwärts', subtitle: 'U-Bahn und S-Bahn' },
-  { id: 'LTHQ', title: 'S-Bahn ab Haar', subtitle: 'Alle Abfahrten' },
+  { id: 'hoeslhome', title: 'Abfahrten stadteinwärts', subtitle: 'U-Bahn und S-Bahn', stations: [{ name: 'Harras', slug: null }] },
+  {
+    id: 'LTHQ',
+    title: 'S-Bahn ab Haar',
+    subtitle: 'Alle Abfahrten',
+    stations: [
+      { name: 'Richtung München', slug: 'stadteinwaerts' },
+      { name: 'Richtung Grafing', slug: 'stadtauswaerts' },
+    ],
+  },
 ];
+const findBoard = (id) => boardList.find((b) => b.id.toLowerCase() === String(id).toLowerCase()) ?? null;
+const findView = (b, slug) => b?.stations.find((s) => s.slug?.toLowerCase() === String(slug).toLowerCase()) ?? null;
 const boards = {
   boards: boardList,
-  findBoard: (id) => boardList.find((b) => b.id.toLowerCase() === String(id).toLowerCase()) ?? null,
-  getBoard: async (id) => {
-    const b = boardList.find((x) => x.id.toLowerCase() === id.toLowerCase());
-    return b ? { board: b, generatedAt: 1, refreshSeconds: 30, stations: [] } : null;
+  findBoard,
+  findView,
+  getBoard: async (id, slug) => {
+    const b = findBoard(id);
+    if (!b || (slug != null && !findView(b, slug))) return null;
+    const stations = slug == null ? b.stations : [findView(b, slug)];
+    return { board: { id: b.id, title: b.title, view: slug ?? null }, generatedAt: 1, refreshSeconds: 30, stations };
   },
 };
 const server = createApp(boards).listen(0);
@@ -45,6 +58,30 @@ test('falsche Schreibweise der Tafel wird umgeleitet, unbekannte gibt 404', asyn
   assert.equal(res.status, 301);
   assert.equal(res.headers.get('location'), '/LTHQ');
   assert.equal((await fetch(`${base}/gibtsnicht`)).status, 404);
+});
+
+test('Teilansichten /LTHQ/stadteinwaerts und /LTHQ/stadtauswaerts', async () => {
+  const res = await fetch(`${base}/LTHQ/stadteinwaerts`);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /data-board="LTHQ\/stadteinwaerts"/);
+  assert.match(html, /<p class="sub">Richtung München<\/p>/);
+  assert.match(html, /\/manifest\/LTHQ\/stadteinwaerts\.webmanifest/);
+
+  const redirect = await fetch(`${base}/lthq/StadtAuswaerts`, { redirect: 'manual' });
+  assert.equal(redirect.status, 301);
+  assert.equal(redirect.headers.get('location'), '/LTHQ/stadtauswaerts');
+  assert.equal((await fetch(`${base}/LTHQ/quer`)).status, 404);
+
+  const api = await (await fetch(`${base}/api/boards/LTHQ/stadtauswaerts`)).json();
+  assert.deepEqual(api.stations.map((s) => s.name), ['Richtung Grafing']);
+  assert.equal((await fetch(`${base}/api/boards/LTHQ/quer`)).status, 404);
+
+  const manifest = await (await fetch(`${base}/manifest/LTHQ/stadtauswaerts.webmanifest`)).json();
+  assert.equal(manifest.start_url, '/LTHQ/stadtauswaerts');
+
+  const list = await (await fetch(`${base}/api/boards`)).json();
+  assert.deepEqual(list[1].views.map((v) => v.url), ['/LTHQ/stadteinwaerts', '/LTHQ/stadtauswaerts']);
 });
 
 test('API liefert Tafel-Daten mit Version, ohne Caching', async () => {

@@ -6,11 +6,18 @@ Kiosk-Webapp für Tablets mit Live-Abfahrten der MVG. Es gibt zwei Tafeln:
 | --- | --- |
 | `/hoeslhome` | U- und S-Bahnen **stadteinwärts** ab Mittersendling, Harras und Brudermühlstraße |
 | `/LTHQ` | **Alle S-Bahnen** ab Haar, getrennt nach Richtung München und Richtung Grafing |
+| `/LTHQ/stadteinwaerts` | Haar, nur Richtung München |
+| `/LTHQ/stadtauswaerts` | Haar, nur Richtung Grafing/Ebersberg |
 
 `/` leitet auf `/hoeslhome` um.
 
 ![Tafel /hoeslhome (Demo-Daten)](docs/screenshot.png)
 ![Tafel /LTHQ (Demo-Daten)](docs/screenshot-lthq.png)
+
+Auf dem Handy (schmaler als 640 px oder sehr niedrig) wird die Seite scrollbar, die Karten stehen
+untereinander und zeigen je fünf Abfahrten (Einzelansichten bis zu zehn):
+
+<img src="docs/screenshot-phone.png" alt="Handy-Ansicht (Demo-Daten)" width="300" />
 
 ## Gehzeiten
 
@@ -66,6 +73,7 @@ gemountet; nach einer Änderung reicht `docker compose restart`. Die Datei enth�
 | `boards[].transportTypes` | Verkehrsmittel (`UBAHN`, `SBAHN`, auch `TRAM`, `BUS` möglich) |
 | `boards[].departuresPerStation` | Höchstzahl Abfahrten pro Karte |
 | `stations[].name` | Überschrift der Karte |
+| `stations[].slug` | Optional: Station zusätzlich einzeln unter `/<tafel>/<slug>` anzeigen |
 | `stations[].walkMinutes` | Gehzeit zur Station in Minuten |
 | `stations[].query`, `place` | Suchbegriff und Ort für die MVG-Stationssuche |
 | `stations[].globalId` | Optional: feste MVG-ID (z. B. `de:09162:6`), überspringt die Suche |
@@ -86,7 +94,7 @@ Umgebungsvariablen: `PORT` (Standard 8080), `CONFIG_PATH`, `MVG_MOCK=1` (Demo-Da
 
 ## Architektur
 
-- `src/server.js`: kleiner Node-Server ohne Laufzeit-Abhängigkeiten. Liefert die Tafeln (`/<id>`), je ein Manifest (`/manifest/<id>.webmanifest`) und die Daten (`/api/boards/<id>`) aus.
+- `src/server.js`: kleiner Node-Server ohne Laufzeit-Abhängigkeiten. Liefert die Tafeln (`/<id>` bzw. `/<id>/<slug>`), je ein Manifest (`/manifest/<id>[/<slug>].webmanifest`) und die Daten (`/api/boards/<id>[/<slug>]`) aus.
 - `src/mvg.js`: Zugriff auf die öffentliche MVG-API (`https://www.mvg.de/api/bgw-pt/v3`, Endpunkte `locations` und `departures`).
 - `src/board.js`: Abruf aller Stationen je Tafel, Filterung, 20 s Cache (mehrere Tablets erzeugen keine Mehrlast).
   Ist die MVG nicht erreichbar, wird der letzte Stand als veraltet angezeigt.

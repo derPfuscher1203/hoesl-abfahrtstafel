@@ -25,8 +25,8 @@ const config = validateConfig({
       id: 'LTHQ',
       transportTypes: ['SBAHN'],
       stations: [
-        { name: 'Harras stadtauswärts', query: 'Harras', directions: { SBAHN: { include: ['Wolfratshausen'] } } },
-        { name: 'Harras stadteinwärts', query: 'Harras', directions: { SBAHN: { exclude: ['Wolfratshausen'] } } },
+        { name: 'Harras stadtauswärts', slug: 'raus', query: 'Harras', directions: { SBAHN: { include: ['Wolfratshausen'] } } },
+        { name: 'Harras stadteinwärts', slug: 'rein', query: 'Harras', directions: { SBAHN: { exclude: ['Wolfratshausen'] } } },
       ],
     },
   ],
@@ -78,6 +78,16 @@ test('mehrere Spalten derselben Station teilen sich einen MVG-Abruf', async () =
   assert.equal(mvg.calls.find, 1);
 });
 
+test('Teilansicht zeigt nur die Station mit dem Slug', async () => {
+  const boards = createBoards(config, { mvg: fakeMvg(), now: () => NOW });
+  const data = await boards.getBoard('LTHQ', 'Rein');
+  assert.deepEqual(data.stations.map((s) => s.name), ['Harras stadteinwärts']);
+  assert.equal(data.board.view, 'rein');
+  assert.equal(data.board.subtitle, 'Harras stadteinwärts');
+  assert.equal(await boards.getBoard('LTHQ', 'quer'), null);
+  assert.equal(await boards.getBoard('hoeslhome', 'rein'), null);
+});
+
 test('cached Ergebnisse und löst die Station nur einmal auf', async () => {
   let t = NOW;
   const mvg = fakeMvg();
@@ -119,6 +129,14 @@ test('Konfiguration wird geprüft', () => {
   assert.throws(() => validateConfig({ boards: [{ id: 'a b', stations: [{ name: 'x' }] }] }), /"id"/);
   assert.throws(
     () => validateConfig({ boards: [{ id: 'a', stations: [{ name: 'x' }] }, { id: 'A', stations: [{ name: 'y' }] }] }),
+    /doppelt/,
+  );
+});
+
+test('Slugs werden geprüft', () => {
+  assert.throws(() => validateConfig({ boards: [{ id: 'a', stations: [{ name: 'x', slug: 'a/b' }] }] }), /slug/);
+  assert.throws(
+    () => validateConfig({ boards: [{ id: 'a', stations: [{ name: 'x', slug: 'r' }, { name: 'y', slug: 'R' }] }] }),
     /doppelt/,
   );
 });

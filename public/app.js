@@ -169,6 +169,7 @@ function trimOverflow() {
 
 function render() {
   if (!data) return;
+  document.body.classList.toggle('single', data.stations.length === 1);
   boardEl.replaceChildren(...data.stations.map(renderStation));
   trimOverflow();
 }
@@ -197,7 +198,7 @@ async function refresh() {
   loading = true;
   lastAttempt = Date.now();
   try {
-    const res = await fetch(`/api/boards/${encodeURIComponent(BOARD_ID)}`, {
+    const res = await fetch(`/api/boards/${BOARD_ID.split('/').map(encodeURIComponent).join('/')}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
@@ -259,9 +260,12 @@ window.addEventListener('pageshow', wakeUp);
 window.addEventListener('focus', wakeUp);
 window.addEventListener('resize', trimOverflow);
 
+// Gleiche Grenze wie in styles.css: Handys scrollen und gehen nicht ungefragt in den Vollbildmodus.
+const compact = matchMedia('(max-width: 640px), (max-height: 520px)');
+
 document.addEventListener('click', () => {
   keepAwake();
-  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+  if (!compact.matches && !document.fullscreenElement && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => {});
   }
 });

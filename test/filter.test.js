@@ -42,12 +42,12 @@ test('Standardkonfiguration: Richtungen der drei Stationen', async () => {
     ['Brudermühlstraße', 'UBAHN', 'Olympiazentrum', true],
     ['Brudermühlstraße', 'UBAHN', 'Fürstenried West', false],
     ['Brudermühlstraße', 'UBAHN', 'Thalkirchen (Tierpark)', false],
-    ['Haar · Richtung München', 'SBAHN', 'Geltendorf', true],
-    ['Haar · Richtung München', 'SBAHN', 'München Hbf', true],
-    ['Haar · Richtung München', 'SBAHN', 'Grafing Bahnhof', false],
-    ['Haar · Richtung Grafing', 'SBAHN', 'Grafing Bahnhof', true],
-    ['Haar · Richtung Grafing', 'SBAHN', 'Ebersberg', true],
-    ['Haar · Richtung Grafing', 'SBAHN', 'Geltendorf', false],
+    ['Richtung München', 'SBAHN', 'Geltendorf', true],
+    ['Richtung München', 'SBAHN', 'München Hbf', true],
+    ['Richtung München', 'SBAHN', 'Grafing Bahnhof', false],
+    ['Richtung Grafing', 'SBAHN', 'Grafing Bahnhof', true],
+    ['Richtung Grafing', 'SBAHN', 'Ebersberg', true],
+    ['Richtung Grafing', 'SBAHN', 'Geltendorf', false],
   ];
   for (const [station, transportType, destination, expected] of cases) {
     assert.equal(isInbound({ transportType, destination }, byName[station]), expected, `${station} → ${destination}`);

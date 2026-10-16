@@ -52,29 +52,35 @@ async function serveStatic(req, res) {
   }
 }
 
-async function serveBoardPage(res, board) {
+function pagePath(board, view) {
+  return view ? `${board.id}/${view.slug}` : board.id;
+}
+
+async function serveBoardPage(res, board, view) {
   const template = await readFile(join(PUBLIC_DIR, 'index.html'), 'utf8');
   const html = template
+    .replaceAll('__BOARD_PATH__', escapeHtml(pagePath(board, view)))
     .replaceAll('__BOARD_ID__', escapeHtml(board.id))
     .replaceAll('__BOARD_TITLE__', escapeHtml(board.title))
-    .replaceAll('__BOARD_SUBTITLE__', escapeHtml(board.subtitle))
+    .replaceAll('__BOARD_SUBTITLE__', escapeHtml(view ? view.name : board.subtitle))
     .replaceAll('__VERSION__', escapeHtml(VERSION));
   res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
   res.end(html);
 }
 
-function manifestFor(board) {
+function manifestFor(board, view) {
+  const path = pagePath(board, view);
   return {
-    id: `/${board.id}`,
-    name: `${board.title} (${board.id})`,
-    short_name: board.id,
-    description: board.subtitle || board.title,
+    id: `/${path}`,
+    name: view ? `${board.title} – ${view.name}` : `${board.title} (${board.id})`,
+    short_name: view ? `${board.id} ${view.slug}` : board.id,
+    description: view ? view.name : board.subtitle || board.title,
     lang: 'de',
-    start_url: `/${board.id}`,
+    start_url: `/${path}`,
     scope: '/',
     display: 'fullscreen',
     display_override: ['fullscreen', 'standalone'],
-    orientation: 'landscape',
+    orientation: 'any',
     background_color: '#0b0f14',
     theme_color: '#0b0f14',
     icons: [
@@ -85,6 +91,20 @@ function manifestFor(board) {
   };
 }
 
+function redirect(res, status, location) {
+  res.writeHead(status, { Location: location });
+  res.end();
+}
+
+/** Löst "/<tafel>" bzw. "/<tafel>/<slug>" auf; null, wenn es das nicht gibt. */
+function resolvePage(boards, id, slug) {
+  const board = boards.findBoard(id);
+  if (!board) return null;
+  if (slug == null) return { board, view: null };
+  const view = boards.findView(board, slug);
+  return view ? { board, view } : null;
+}
+
 export function createApp(boards) {
   return createServer(async (req, res) => {
     try {
@@ -93,36 +113,42 @@ export function createApp(boards) {
       if (pathname === '/healthz') return sendJson(res, 200, { status: 'ok', version: VERSION });
 
       if (pathname === '/api/boards') {
-        return sendJson(res, 200, boards.boards.map((b) => ({ id: b.id, title: b.title, url: `/${b.id}` })));
+        return sendJson(
+          res,
+          200,
+          boards.boards.map((b) => ({
+            id: b.id,
+            title: b.title,
+            url: `/${b.id}`,
+            views: b.stations.filter((s) => s.slug).map((s) => ({ slug: s.slug, name: s.name, url: `/${b.id}/${s.slug}` })),
+          })),
+        );
       }
-      const apiMatch = pathname.match(/^\/api\/boards\/([^/]+)$/);
+      const apiMatch = pathname.match(/^\/api\/boards\/([^/]+)(?:\/([^/]+))?$/);
       if (apiMatch || pathname === '/api/departures') {
-        const data = await boards.getBoard(apiMatch ? decodeURIComponent(apiMatch[1]) : boards.boards[0].id);
+        const data = apiMatch
+          ? await boards.getBoard(decodeURIComponent(apiMatch[1]), apiMatch[2] && decodeURIComponent(apiMatch[2]))
+          : await boards.getBoard(boards.boards[0].id);
         if (!data) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
         return sendJson(res, 200, { ...data, version: VERSION });
       }
 
-      const manifestMatch = pathname.match(/^\/manifest\/([^/]+)\.webmanifest$/);
+      const manifestMatch = pathname.match(/^\/manifest\/([^/]+?)(?:\/([^/]+?))?\.webmanifest$/);
       if (manifestMatch) {
-        const board = boards.findBoard(decodeURIComponent(manifestMatch[1]));
-        if (!board) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
-        return sendJson(res, 200, manifestFor(board), MIME['.webmanifest']);
+        const page = resolvePage(boards, decodeURIComponent(manifestMatch[1]), manifestMatch[2] && decodeURIComponent(manifestMatch[2]));
+        if (!page) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
+        return sendJson(res, 200, manifestFor(page.board, page.view), MIME['.webmanifest']);
       }
 
-      if (pathname === '/' || pathname === '/index.html') {
-        res.writeHead(302, { Location: `/${boards.boards[0].id}` });
-        return res.end();
-      }
+      if (pathname === '/' || pathname === '/index.html') return redirect(res, 302, `/${boards.boards[0].id}`);
 
-      const pageMatch = pathname.match(/^\/([A-Za-z0-9_-]+)\/?$/);
-      const board = pageMatch && boards.findBoard(pageMatch[1]);
-      if (board) {
+      const pageMatch = pathname.match(/^\/([A-Za-z0-9_-]+)(?:\/([A-Za-z0-9_-]+))?\/?$/);
+      const page = pageMatch && resolvePage(boards, pageMatch[1], pageMatch[2]);
+      if (page) {
         // Schreibweise vereinheitlichen (/lthq -> /LTHQ), damit die PWA nur eine URL kennt.
-        if (pageMatch[1] !== board.id) {
-          res.writeHead(301, { Location: `/${board.id}` });
-          return res.end();
-        }
-        return serveBoardPage(res, board);
+        const canonical = `/${pagePath(page.board, page.view)}`;
+        if (pathname !== canonical) return redirect(res, 301, canonical);
+        return serveBoardPage(res, page.board, page.view);
       }
       return serveStatic(req, res);
     } catch (err) {
@@ -144,7 +170,10 @@ async function main() {
   const port = Number(process.env.PORT) || 8080;
   const server = createApp(boards).listen(port, () => {
     console.log(`Abfahrtstafel ${VERSION} läuft auf http://0.0.0.0:${port}`);
-    for (const b of config.boards) console.log(`  /${b.id}  ${b.title}`);
+    for (const b of config.boards) {
+      console.log(`  /${b.id}  ${b.title}`);
+      for (const s of b.stations) if (s.slug) console.log(`  /${b.id}/${s.slug}  ${s.name}`);
+    }
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGTERM', shutdown);

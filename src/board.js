@@ -85,10 +85,18 @@ export function createBoards(config, { mvg = { findStation, fetchDepartures }, c
     return config.boards.find((b) => b.id.toLowerCase() === String(id).toLowerCase()) ?? null;
   }
 
-  /** @returns {Promise<object|null>} null, wenn es die Tafel nicht gibt */
-  async function getBoard(id) {
+  /** Teilansicht einer Tafel, z. B. /LTHQ/stadteinwaerts. */
+  function findView(board, slug) {
+    if (!board || slug == null) return null;
+    return board.stations.find((s) => s.slug && s.slug.toLowerCase() === String(slug).toLowerCase()) ?? null;
+  }
+
+  /** @returns {Promise<object|null>} null, wenn es die Tafel bzw. Ansicht nicht gibt */
+  async function getBoard(id, slug) {
     const board = findBoard(id);
     if (!board) return null;
+    const view = slug == null ? null : findView(board, slug);
+    if (slug != null && !view) return null;
     // Gleichzeitige Anfragen auf dieselbe Tafel teilen sich einen Abruf.
     if (!boardInflight.has(board.id)) {
       boardInflight.set(
@@ -96,9 +104,10 @@ export function createBoards(config, { mvg = { findStation, fetchDepartures }, c
         Promise.all(board.stations.map((s, i) => loadStation(board, s, i))).finally(() => boardInflight.delete(board.id)),
       );
     }
-    const stations = await boardInflight.get(board.id);
+    const all = await boardInflight.get(board.id);
+    const stations = view ? all.filter((_, i) => board.stations[i] === view) : all;
     return {
-      board: { id: board.id, title: board.title, subtitle: board.subtitle },
+      board: { id: board.id, title: board.title, subtitle: view ? view.name : board.subtitle, view: view?.slug ?? null },
       departuresPerStation: board.departuresPerStation,
       generatedAt: now(),
       refreshSeconds: board.refreshSeconds,
@@ -106,5 +115,5 @@ export function createBoards(config, { mvg = { findStation, fetchDepartures }, c
     };
   }
 
-  return { boards: config.boards, findBoard, getBoard };
+  return { boards: config.boards, findBoard, findView, getBoard };
 }
