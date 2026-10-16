@@ -1,55 +1,110 @@
 import { isInbound } from './filter.js';
 import { fetchDepartures, findStation } from './mvg.js';
 
+// Zusätzliche Abfahrten, damit nach dem Ausblenden nicht mehr erreichbarer Züge
+// (Gehzeit) im Browser noch genug übrig bleiben.
+const EXTRA_DEPARTURES = 6;
+
 /**
- * Hält den Abfahrtsstand aller Stationen mit kurzem Cache, damit mehrere
+ * Hält den Abfahrtsstand aller Tafeln mit kurzem Cache, damit mehrere
  * Tablets die MVG nicht vervielfacht abfragen. Fällt die MVG aus, wird der
  * letzte bekannte Stand mit "stale: true" ausgeliefert.
  */
-export function createBoard(config, { mvg = { findStation, fetchDepartures }, cacheMs = 20_000, now = Date.now } = {}) {
-  const ids = new Map(config.stations.filter((s) => s.globalId).map((s) => [s.name, s.globalId]));
-  const cache = new Map();
-  let inflight = null;
+export function createBoards(config, { mvg = { findStation, fetchDepartures }, cacheMs = 20_000, now = Date.now } = {}) {
+  // globalId pro Suchbegriff; mehrere Spalten können dieselbe Station nutzen.
+  const ids = new Map();
+  const idKey = (s) => `${s.query}|${s.place ?? ''}`;
+  for (const b of config.boards) for (const s of b.stations) if (s.globalId) ids.set(idKey(s), s.globalId);
+
+  // Rohdaten pro globalId + Verkehrsmittel, gemeinsam für alle Spalten/Tafeln.
+  const rawCache = new Map();
+  const rawInflight = new Map();
+  const lastGood = new Map();
+  const boardInflight = new Map();
+
+  const idInflight = new Map();
 
   async function resolveId(station) {
-    if (!ids.has(station.name)) {
-      const found = await mvg.findStation(station.query);
-      ids.set(station.name, found.globalId);
+    const key = idKey(station);
+    if (ids.has(key)) return ids.get(key);
+    if (!idInflight.has(key)) {
+      const p = mvg
+        .findStation(station.query, undefined, station.place ?? undefined)
+        .then((found) => {
+          ids.set(key, found.globalId);
+          return found.globalId;
+        })
+        .finally(() => idInflight.delete(key));
+      idInflight.set(key, p);
     }
-    return ids.get(station.name);
+    return idInflight.get(key);
   }
 
-  async function loadStation(station) {
-    const cached = cache.get(station.name);
-    if (cached && now() - cached.fetchedAt < cacheMs) return cached.result;
+  async function loadRaw(globalId, transportTypes) {
+    const key = `${globalId}|${transportTypes.join(',')}`;
+    const cached = rawCache.get(key);
+    if (cached && now() - cached.fetchedAt < cacheMs) return cached.departures;
+    if (!rawInflight.has(key)) {
+      const p = mvg
+        .fetchDepartures(globalId, { transportTypes, limit: 60 })
+        .then((departures) => {
+          rawCache.set(key, { fetchedAt: now(), departures });
+          return departures;
+        })
+        .finally(() => rawInflight.delete(key));
+      rawInflight.set(key, p);
+    }
+    return rawInflight.get(key);
+  }
+
+  async function loadStation(board, station, index) {
+    const cacheKey = `${board.id}#${index}`;
+    const base = { name: station.name, walkMinutes: station.walkMinutes };
     try {
       const globalId = await resolveId(station);
-      const all = await mvg.fetchDepartures(globalId, { transportTypes: config.transportTypes });
+      const all = await loadRaw(globalId, board.transportTypes);
       const nowTs = now();
       const departures = all
-        .filter((d) => config.transportTypes.includes(d.transportType))
+        .filter((d) => board.transportTypes.includes(d.transportType))
         .filter((d) => isInbound(d, station.directions))
         .filter((d) => d.departureTime == null || d.departureTime >= nowTs - 60_000)
         .sort((a, b) => a.departureTime - b.departureTime)
-        .slice(0, config.departuresPerStation);
-      const result = { name: station.name, globalId, departures, updatedAt: nowTs, stale: false };
-      cache.set(station.name, { fetchedAt: nowTs, result });
+        .slice(0, board.departuresPerStation + EXTRA_DEPARTURES);
+      const result = { ...base, globalId, departures, updatedAt: nowTs, stale: false };
+      lastGood.set(cacheKey, result);
       return result;
     } catch (err) {
-      console.error(`[${station.name}] ${err.message}`);
-      if (cached) return { ...cached.result, stale: true, error: 'Daten veraltet – MVG nicht erreichbar' };
-      return { name: station.name, globalId: ids.get(station.name) ?? null, departures: [], stale: true, error: 'MVG nicht erreichbar' };
+      console.error(`[${board.id} / ${station.name}] ${err.message}`);
+      const previous = lastGood.get(cacheKey);
+      if (previous) return { ...previous, stale: true, error: 'Daten veraltet – MVG nicht erreichbar' };
+      return { ...base, globalId: ids.get(idKey(station)) ?? null, departures: [], stale: true, error: 'MVG nicht erreichbar' };
     }
   }
 
-  async function getBoard() {
-    // Gleichzeitige Anfragen teilen sich einen Abruf.
-    inflight ??= Promise.all(config.stations.map(loadStation)).finally(() => {
-      inflight = null;
-    });
-    const stations = await inflight;
-    return { generatedAt: now(), refreshSeconds: config.refreshSeconds, stations };
+  function findBoard(id) {
+    return config.boards.find((b) => b.id.toLowerCase() === String(id).toLowerCase()) ?? null;
   }
 
-  return { getBoard };
+  /** @returns {Promise<object|null>} null, wenn es die Tafel nicht gibt */
+  async function getBoard(id) {
+    const board = findBoard(id);
+    if (!board) return null;
+    // Gleichzeitige Anfragen auf dieselbe Tafel teilen sich einen Abruf.
+    if (!boardInflight.has(board.id)) {
+      boardInflight.set(
+        board.id,
+        Promise.all(board.stations.map((s, i) => loadStation(board, s, i))).finally(() => boardInflight.delete(board.id)),
+      );
+    }
+    const stations = await boardInflight.get(board.id);
+    return {
+      board: { id: board.id, title: board.title, subtitle: board.subtitle },
+      departuresPerStation: board.departuresPerStation,
+      generatedAt: now(),
+      refreshSeconds: board.refreshSeconds,
+      stations,
+    };
+  }
+
+  return { boards: config.boards, findBoard, getBoard };
 }

@@ -27,7 +27,7 @@ test('include lässt nur passende Ziele durch', () => {
 
 test('Standardkonfiguration: Richtungen der drei Stationen', async () => {
   const config = await loadConfig();
-  const byName = Object.fromEntries(config.stations.map((s) => [s.name, s.directions]));
+  const byName = Object.fromEntries(config.boards.flatMap((b) => b.stations).map((s) => [s.name, s.directions]));
   const cases = [
     ['Mittersendling', 'SBAHN', 'Kreuzstraße', true],
     ['Mittersendling', 'SBAHN', 'München Ost', true],
@@ -42,6 +42,12 @@ test('Standardkonfiguration: Richtungen der drei Stationen', async () => {
     ['Brudermühlstraße', 'UBAHN', 'Olympiazentrum', true],
     ['Brudermühlstraße', 'UBAHN', 'Fürstenried West', false],
     ['Brudermühlstraße', 'UBAHN', 'Thalkirchen (Tierpark)', false],
+    ['Haar · Richtung München', 'SBAHN', 'Geltendorf', true],
+    ['Haar · Richtung München', 'SBAHN', 'München Hbf', true],
+    ['Haar · Richtung München', 'SBAHN', 'Grafing Bahnhof', false],
+    ['Haar · Richtung Grafing', 'SBAHN', 'Grafing Bahnhof', true],
+    ['Haar · Richtung Grafing', 'SBAHN', 'Ebersberg', true],
+    ['Haar · Richtung Grafing', 'SBAHN', 'Geltendorf', false],
   ];
   for (const [station, transportType, destination, expected] of cases) {
     assert.equal(isInbound({ transportType, destination }, byName[station]), expected, `${station} → ${destination}`);

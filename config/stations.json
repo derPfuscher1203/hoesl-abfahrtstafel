@@ -1,80 +1,142 @@
 {
-  "$comment": "Stationen und Richtungsfilter. 'exclude' listet Ziele, die stadtauswärts liegen (Teilstring, Groß-/Kleinschreibung egal). 'include' (optional) erlaubt nur passende Ziele. 'globalId' (optional) überspringt die Namenssuche.",
+  "$comment": "Mehrere Tafeln, jede unter /<id> erreichbar. Pro Station: 'walkMinutes' = Gehzeit zur Station. 'directions.<TYP>.exclude' blendet Ziele aus (Teilstring, Groß-/Kleinschreibung und Umlaute egal), 'include' lässt nur passende Ziele durch. 'query'/'place' steuern die MVG-Stationssuche, 'globalId' überspringt sie.",
   "refreshSeconds": 30,
-  "departuresPerStation": 8,
-  "transportTypes": ["UBAHN", "SBAHN"],
-  "stations": [
+  "boards": [
     {
-      "name": "Mittersendling",
-      "query": "Mittersendling",
-      "directions": {
-        "SBAHN": {
-          "exclude": [
-            "Wolfratshausen",
-            "Icking",
-            "Ebenhausen",
-            "Hohenschäftlarn",
-            "Baierbrunn",
-            "Buchenhain",
-            "Höllriegelskreuth",
-            "Pullach",
-            "Großhesselohe",
-            "Solln",
-            "Siemenswerke",
-            "Deisenhofen"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Harras",
-      "query": "Harras",
-      "directions": {
-        "UBAHN": {
-          "exclude": [
-            "Klinikum Großhadern",
-            "Großhadern",
-            "Haderner Stern",
-            "Holzapfelkreuth",
-            "Westpark",
-            "Partnachplatz"
-          ]
+      "id": "hoeslhome",
+      "title": "Abfahrten stadteinwärts",
+      "subtitle": "U-Bahn und S-Bahn",
+      "transportTypes": [
+        "UBAHN",
+        "SBAHN"
+      ],
+      "departuresPerStation": 8,
+      "stations": [
+        {
+          "name": "Mittersendling",
+          "query": "Mittersendling",
+          "walkMinutes": 6,
+          "directions": {
+            "SBAHN": {
+              "exclude": [
+                "Wolfratshausen",
+                "Icking",
+                "Ebenhausen",
+                "Hohenschäftlarn",
+                "Baierbrunn",
+                "Buchenhain",
+                "Höllriegelskreuth",
+                "Pullach",
+                "Großhesselohe",
+                "Solln",
+                "Siemenswerke",
+                "Deisenhofen"
+              ]
+            }
+          }
         },
-        "SBAHN": {
-          "exclude": [
-            "Wolfratshausen",
-            "Icking",
-            "Ebenhausen",
-            "Hohenschäftlarn",
-            "Baierbrunn",
-            "Buchenhain",
-            "Höllriegelskreuth",
-            "Pullach",
-            "Großhesselohe",
-            "Solln",
-            "Siemenswerke",
-            "Mittersendling",
-            "Deisenhofen"
-          ]
+        {
+          "name": "Harras",
+          "query": "Harras",
+          "walkMinutes": 12,
+          "directions": {
+            "UBAHN": {
+              "exclude": [
+                "Klinikum Großhadern",
+                "Großhadern",
+                "Haderner Stern",
+                "Holzapfelkreuth",
+                "Westpark",
+                "Partnachplatz"
+              ]
+            },
+            "SBAHN": {
+              "exclude": [
+                "Wolfratshausen",
+                "Icking",
+                "Ebenhausen",
+                "Hohenschäftlarn",
+                "Baierbrunn",
+                "Buchenhain",
+                "Höllriegelskreuth",
+                "Pullach",
+                "Großhesselohe",
+                "Solln",
+                "Siemenswerke",
+                "Mittersendling",
+                "Deisenhofen"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Brudermühlstraße",
+          "query": "Brudermühlstraße",
+          "walkMinutes": 12,
+          "directions": {
+            "UBAHN": {
+              "exclude": [
+                "Fürstenried",
+                "Forstenrieder Allee",
+                "Basler Straße",
+                "Machtlfinger Straße",
+                "Aidenbachstraße",
+                "Obersendling",
+                "Thalkirchen"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Brudermühlstraße",
-      "query": "Brudermühlstraße",
-      "directions": {
-        "UBAHN": {
-          "exclude": [
-            "Fürstenried",
-            "Forstenrieder Allee",
-            "Basler Straße",
-            "Machtlfinger Straße",
-            "Aidenbachstraße",
-            "Obersendling",
-            "Thalkirchen"
-          ]
+      "id": "LTHQ",
+      "title": "S-Bahn ab Haar",
+      "subtitle": "Alle Abfahrten",
+      "transportTypes": [
+        "SBAHN"
+      ],
+      "departuresPerStation": 8,
+      "stations": [
+        {
+          "name": "Haar · Richtung München",
+          "query": "Haar",
+          "place": "Haar",
+          "walkMinutes": 12,
+          "directions": {
+            "SBAHN": {
+              "exclude": [
+                "Grafing",
+                "Ebersberg",
+                "Kirchseeon",
+                "Eglharting",
+                "Zorneding",
+                "Baldham",
+                "Vaterstetten"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Haar · Richtung Grafing",
+          "query": "Haar",
+          "place": "Haar",
+          "walkMinutes": 12,
+          "directions": {
+            "SBAHN": {
+              "include": [
+                "Grafing",
+                "Ebersberg",
+                "Kirchseeon",
+                "Eglharting",
+                "Zorneding",
+                "Baldham",
+                "Vaterstetten"
+              ]
+            }
+          }
         }
-      }
+      ]
     }
   ]
 }

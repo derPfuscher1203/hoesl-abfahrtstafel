@@ -16,6 +16,13 @@ const LINES = {
     ['S7', 'SBAHN', 'Wolfratshausen'],
     ['U6', 'UBAHN', 'Münchner Freiheit'],
   ],
+  'mock:haar': [
+    ['S4', 'SBAHN', 'Geltendorf'],
+    ['S4', 'SBAHN', 'Grafing Bahnhof'],
+    ['S4', 'SBAHN', 'München Hbf'],
+    ['S4', 'SBAHN', 'Ebersberg'],
+    ['S4', 'SBAHN', 'Trudering'],
+  ],
   'mock:brudermuehlstrasse': [
     ['U3', 'UBAHN', 'Moosach'],
     ['U3', 'UBAHN', 'Fürstenried West'],

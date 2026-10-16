@@ -50,8 +50,10 @@ jobs:
             curl -fsS http://localhost:8080/healthz && break
             sleep 1
           done
-          curl -fsS http://localhost:8080/ | grep -q "Abfahrten stadteinwärts"
-          curl -fsS http://localhost:8080/api/departures | jq -e '.stations | length == 3'
+          curl -fsSL http://localhost:8080/ | grep -q "Abfahrten stadteinwärts"
+          curl -fsS http://localhost:8080/LTHQ | grep -q "S-Bahn ab Haar"
+          curl -fsS http://localhost:8080/api/boards/hoeslhome | jq -e '.stations | length == 3'
+          curl -fsS http://localhost:8080/api/boards/LTHQ | jq -e '.stations | length == 2'
       - name: Logs bei Fehler
         if: failure()
         run: docker logs smoke

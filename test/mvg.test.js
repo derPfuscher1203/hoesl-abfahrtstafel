@@ -29,6 +29,19 @@ test('findStation nimmt die Münchner Station', async () => {
   assert.match(seen[0], /\/locations\?query=Harras&locationTypes=STATION$/);
 });
 
+test('findStation bevorzugt exakten Namen im gewünschten Ort', async () => {
+  const result = await findStation(
+    'Haar',
+    fakeFetch([
+      { type: 'STATION', name: 'Haarer Straße', place: 'München', globalId: 'de:09162:999' },
+      { type: 'STATION', name: 'Haar, Leibstraße', place: 'Haar', globalId: 'de:09184:111' },
+      { type: 'STATION', name: 'Haar', place: 'Haar', globalId: 'de:09184:460' },
+    ]),
+    'Haar',
+  );
+  assert.equal(result.globalId, 'de:09184:460');
+});
+
 test('findStation wirft, wenn nichts gefunden wird', async () => {
   await assert.rejects(findStation('Nirgendwo', fakeFetch([])), /nicht gefunden/);
 });
