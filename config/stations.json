@@ -1,0 +1,80 @@
+{
+  "$comment": "Stationen und Richtungsfilter. 'exclude' listet Ziele, die stadtauswärts liegen (Teilstring, Groß-/Kleinschreibung egal). 'include' (optional) erlaubt nur passende Ziele. 'globalId' (optional) überspringt die Namenssuche.",
+  "refreshSeconds": 30,
+  "departuresPerStation": 8,
+  "transportTypes": ["UBAHN", "SBAHN"],
+  "stations": [
+    {
+      "name": "Mittersendling",
+      "query": "Mittersendling",
+      "directions": {
+        "SBAHN": {
+          "exclude": [
+            "Wolfratshausen",
+            "Icking",
+            "Ebenhausen",
+            "Hohenschäftlarn",
+            "Baierbrunn",
+            "Buchenhain",
+            "Höllriegelskreuth",
+            "Pullach",
+            "Großhesselohe",
+            "Solln",
+            "Siemenswerke",
+            "Deisenhofen"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Harras",
+      "query": "Harras",
+      "directions": {
+        "UBAHN": {
+          "exclude": [
+            "Klinikum Großhadern",
+            "Großhadern",
+            "Haderner Stern",
+            "Holzapfelkreuth",
+            "Westpark",
+            "Partnachplatz"
+          ]
+        },
+        "SBAHN": {
+          "exclude": [
+            "Wolfratshausen",
+            "Icking",
+            "Ebenhausen",
+            "Hohenschäftlarn",
+            "Baierbrunn",
+            "Buchenhain",
+            "Höllriegelskreuth",
+            "Pullach",
+            "Großhesselohe",
+            "Solln",
+            "Siemenswerke",
+            "Mittersendling",
+            "Deisenhofen"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Brudermühlstraße",
+      "query": "Brudermühlstraße",
+      "directions": {
+        "UBAHN": {
+          "exclude": [
+            "Fürstenried",
+            "Forstenrieder Allee",
+            "Basler Straße",
+            "Machtlfinger Straße",
+            "Aidenbachstraße",
+            "Obersendling",
+            "Thalkirchen"
+          ]
+        }
+      }
+    }
+  ]
+}

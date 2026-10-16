@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Abfahrten" />
+    <title>Abfahrtstafel</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>Abfahrten stadteinwärts</h1>
+        <p class="sub">U-Bahn und S-Bahn</p>
+      </div>
+      <time id="clock" class="clock">--:--</time>
+    </header>
+    <main id="board" class="board" aria-live="polite"></main>
+    <footer class="status">
+      <span id="status">Lade Abfahrten …</span>
+      <span class="hint">Tippen für Vollbild</span>
+    </footer>
+    <template id="station-tpl">
+      <section class="station">
+        <h2 class="station-name"></h2>
+        <p class="station-note" hidden></p>
+        <ol class="departures"></ol>
+      </section>
+    </template>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

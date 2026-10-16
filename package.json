@@ -1,0 +1,23 @@
+{
+  "name": "hoesl-abfahrtstafel",
+  "version": "1.0.0",
+  "description": "Kiosk-Abfahrtstafel für Mittersendling, Harras und Brudermühlstraße (MVG, nur U-/S-Bahn stadteinwärts)",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "MVG_MOCK=1 node --watch src/server.js",
+    "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0"
+  }
+}
