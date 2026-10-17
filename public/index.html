@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="__BOARD_ID__" />
+    <title>__BOARD_TITLE__</title>
+    <link rel="manifest" href="/manifest/__BOARD_PATH__.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="stylesheet" href="/styles.css?v=__VERSION__" />
+  </head>
+  <body data-board="__BOARD_PATH__" data-version="__VERSION__">
+    <header class="top">
+      <div>
+        <h1>__BOARD_TITLE__</h1>
+        <p class="sub">__BOARD_SUBTITLE__</p>
+      </div>
+      <time id="clock" class="clock">--:--</time>
+    </header>
+    <main id="board" class="board" aria-live="polite"></main>
+    <footer class="status">
+      <span id="status">Lade Abfahrten …</span>
+      <span class="hint">Tippen für Vollbild</span>
+    </footer>
+    <template id="station-tpl">
+      <section class="station">
+        <header class="station-head">
+          <h2 class="station-name"></h2>
+          <span class="walk" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2" /><path d="M10.5 8.5 8 10v4m2.5-5.5 3-.5 2 3.5 3 1.5m-5.5-5-1.5 6 3 3v5m-3-8-2.5 3.5L7 22" /></svg>
+            <span class="walk-min"></span>
+          </span>
+        </header>
+        <p class="station-note" hidden></p>
+        <div class="hero" hidden>
+          <div class="hero-main">
+            <span class="hero-label"></span>
+            <span class="hero-sub"></span>
+          </div>
+          <div class="hero-bar"><span></span></div>
+        </div>
+        <ol class="departures"></ol>
+      </section>
+    </template>
+    <script type="module" src="/app.js?v=__VERSION__"></script>
+  </body>
+</html>

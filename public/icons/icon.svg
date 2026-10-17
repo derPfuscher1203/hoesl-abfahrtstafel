@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b0f14"/>
+  <rect x="96" y="150" width="148" height="104" rx="18" fill="#0065ae"/>
+  <text x="170" y="226" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" fill="#fff" text-anchor="middle">U</text>
+  <rect x="268" y="150" width="148" height="104" rx="52" fill="#943126"/>
+  <text x="342" y="226" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" fill="#fff" text-anchor="middle">S</text>
+  <rect x="96" y="290" width="320" height="18" rx="9" fill="#46d17f"/>
+  <rect x="96" y="330" width="240" height="18" rx="9" fill="#8b97a6"/>
+</svg>

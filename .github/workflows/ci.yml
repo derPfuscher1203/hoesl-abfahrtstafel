@@ -1,0 +1,100 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  docker:
+    name: Docker Build & Smoke-Test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Image bauen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: abfahrtstafel:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Container starten und prüfen
+        run: |
+          docker run -d --name smoke -p 8080:8080 -e MVG_MOCK=1 abfahrtstafel:ci
+          for i in $(seq 1 20); do
+            curl -fsS http://localhost:8080/healthz && break
+            sleep 1
+          done
+          curl -fsSL http://localhost:8080/ | grep -q "Abfahrten stadteinwärts"
+          curl -fsS http://localhost:8080/LTHQ | grep -q "S-Bahn ab Haar"
+          curl -fsS http://localhost:8080/api/boards/hoeslhome | jq -e '.stations | length == 3'
+          curl -fsS http://localhost:8080/api/boards/LTHQ | jq -e '.stations | length == 2'
+          curl -fsS http://localhost:8080/LTHQ/stadteinwaerts | grep -q "Richtung München"
+          curl -fsS http://localhost:8080/api/boards/LTHQ/stadtauswaerts | jq -e '.stations | length == 1'
+          curl -fsS http://localhost:8080/zeno/moosburg | grep -q "Moosburg"
+          curl -fsS http://localhost:8080/api/boards/zeno/hp8 | jq -e '.stations | length == 2'
+      - name: Logs bei Fehler
+        if: failure()
+        run: docker logs smoke
+
+  publish:
+    name: Image nach GHCR veröffentlichen
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # GHCR verlangt Kleinbuchstaben im Image-Namen.
+          images: ghcr.io/derpfuscher1203/hoesl-abfahrtstafel
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

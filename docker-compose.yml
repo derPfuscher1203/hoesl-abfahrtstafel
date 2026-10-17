@@ -1,0 +1,15 @@
+services:
+  abfahrtstafel:
+    image: ghcr.io/derpfuscher1203/hoesl-abfahrtstafel:latest
+    # Zum lokalen Bauen statt Image ziehen: "docker compose up --build"
+    build: .
+    container_name: abfahrtstafel
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Europe/Berlin
+      # MVG_MOCK: "1"   # Demo-Daten ohne Internet
+    volumes:
+      # Eigene Stationen/Richtungsfilter ohne neues Image:
+      - ./config/stations.json:/app/config/stations.json:ro
