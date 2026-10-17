@@ -1,5 +1,5 @@
 {
-  "$comment": "Mehrere Tafeln, jede unter /<id> erreichbar. Pro Station: 'walkMinutes' = Gehzeit zur Station. 'directions.<TYP>.exclude' blendet Ziele aus (Teilstring, Groß-/Kleinschreibung und Umlaute egal), 'include' lässt nur passende Ziele durch. 'query'/'place' steuern die MVG-Stationssuche, 'globalId' überspringt sie. 'slug' macht eine Station zusätzlich einzeln unter /<tafel>/<slug> erreichbar.",
+  "$comment": "Mehrere Tafeln, jede unter /<id> erreichbar. Pro Station: 'walkMinutes' = Gehzeit zur Station. 'directions.<TYP>.exclude' blendet Ziele aus (Teilstring, Groß-/Kleinschreibung und Umlaute egal), 'include' lässt nur passende Ziele durch. 'query'/'place' steuern die MVG-Stationssuche, 'globalId' überspringt sie. 'slug' macht eine Station zusätzlich einzeln unter /<tafel>/<slug> erreichbar. Tafel-IDs dürfen Unterpfade haben (zeno/hp8). Pro Station optional: 'transportTypes' (sonst die der Tafel), 'provider' (mvg oder db) und 'fallbackProvider' für den Fall, dass die erste Quelle nicht antwortet.",
   "refreshSeconds": 30,
   "boards": [
     {
@@ -137,6 +137,73 @@
               ]
             }
           }
+        }
+      ]
+    },
+    {
+      "id": "zeno/moosburg",
+      "title": "Moosburg",
+      "subtitle": "Züge Richtung München und Flughafen",
+      "transportTypes": [
+        "BAHN"
+      ],
+      "departuresPerStation": 8,
+      "stations": [
+        {
+          "name": "Moosburg Bahnhof",
+          "query": "Moosburg",
+          "place": "Moosburg a.d.Isar",
+          "provider": "mvg",
+          "fallbackProvider": "db",
+          "walkMinutes": 12,
+          "directions": {
+            "BAHN": {
+              "include": [
+                "München",
+                "Muenchen",
+                "Flughafen",
+                "Freising"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "zeno/hp8",
+      "title": "HP8",
+      "subtitle": "U-Bahn stadteinwärts und Busse",
+      "departuresPerStation": 8,
+      "stations": [
+        {
+          "name": "Brudermühlstraße",
+          "query": "Brudermühlstraße",
+          "transportTypes": [
+            "UBAHN"
+          ],
+          "walkMinutes": 10,
+          "directions": {
+            "UBAHN": {
+              "exclude": [
+                "Fürstenried",
+                "Forstenrieder Allee",
+                "Basler Straße",
+                "Machtlfinger Straße",
+                "Aidenbachstraße",
+                "Obersendling",
+                "Thalkirchen"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Schäftlarnstraße",
+          "query": "Schäftlarnstraße",
+          "transportTypes": [
+            "BUS",
+            "REGIONAL_BUS"
+          ],
+          "walkMinutes": 5
         }
       ]
     }

@@ -37,7 +37,8 @@ test('geladene Farben haben Vorrang, sonst gilt der Fallback', async () => {
   assert.equal(lc.style('SBAHN', 'S7').background, '#123456');
   // Nicht in der CSV, aber im Fallback.
   assert.equal(lc.style('UBAHN', 'U3').background, FALLBACK['UBAHN:U3'].background);
-  assert.equal(lc.style('BUS', 'X99'), null);
+  assert.equal(lc.style('SCHIFF', 'X99'), null);
+  assert.equal(lc.style('BAHN', 'RB 33').background, '#5b6573');
   assert.equal(lc.info().lines, 4);
 });
 
@@ -58,7 +59,7 @@ test('stylesFor liefert genau die Linien der Abfahrten', () => {
   const lc = createLineColors({ url: 'x', fetchImpl: ok('') });
   const styles = lc.stylesFor([
     { departures: [{ transportType: 'UBAHN', line: 'U6' }, { transportType: 'SBAHN', line: 'S7' }] },
-    { departures: [{ transportType: 'UBAHN', line: 'U6' }, { transportType: 'BUS', line: 'X99' }] },
+    { departures: [{ transportType: 'UBAHN', line: 'U6' }, { transportType: 'SCHIFF', line: 'X99' }] },
   ]);
   assert.deepEqual(Object.keys(styles).sort(), ['SBAHN:S7', 'UBAHN:U6']);
 });

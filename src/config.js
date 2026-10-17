@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
+export const PROVIDERS = ['mvg', 'db'];
+export const BOARD_ID = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*$/;
+
 const DEFAULT_CONFIG_PATH = fileURLToPath(new URL('../config/stations.json', import.meta.url));
 
 /**
@@ -15,6 +18,9 @@ export async function loadConfig(path = process.env.CONFIG_PATH || DEFAULT_CONFI
 function validateStation(s, where) {
   if (!s?.name) throw new Error(`${where} hat keinen "name".`);
   const walk = Number(s.walkMinutes);
+  for (const key of ['provider', 'fallbackProvider']) {
+    if (s[key] != null && !PROVIDERS.includes(s[key])) throw new Error(`${where}: "${key}" muss ${PROVIDERS.join(' oder ')} sein.`);
+  }
   if (s.slug != null && !/^[A-Za-z0-9_-]+$/.test(s.slug)) throw new Error(`${where}: "slug" darf nur Buchstaben, Ziffern, - und _ enthalten.`);
   return {
     name: s.name,
@@ -23,13 +29,18 @@ function validateStation(s, where) {
     place: s.place || null,
     globalId: s.globalId || null,
     walkMinutes: Number.isFinite(walk) && walk > 0 ? walk : 0,
+    provider: s.provider || 'mvg',
+    fallbackProvider: s.fallbackProvider && s.fallbackProvider !== (s.provider || 'mvg') ? s.fallbackProvider : null,
+    transportTypes: s.transportTypes?.length ? s.transportTypes : null,
     directions: s.directions || {},
   };
 }
 
 function validateBoard(b, defaults, index) {
   const where = `Tafel #${index + 1}`;
-  if (!b?.id || !/^[A-Za-z0-9_-]+$/.test(b.id)) throw new Error(`${where} braucht eine "id" aus Buchstaben, Ziffern, - oder _.`);
+  if (!b?.id || !BOARD_ID.test(b.id)) {
+    throw new Error(`${where} braucht eine "id" aus Buchstaben, Ziffern, - oder _ (Unterpfade mit /, z. B. "zeno/hp8").`);
+  }
   if (!Array.isArray(b.stations) || b.stations.length === 0) throw new Error(`Tafel "${b.id}" braucht mindestens eine Station.`);
   return {
     id: b.id,

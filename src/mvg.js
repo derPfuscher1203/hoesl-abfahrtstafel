@@ -17,13 +17,15 @@ async function getJson(url, fetchImpl) {
  * Bevorzugt wird ein exakter Namenstreffer im gewünschten Ort (Standard: München).
  * @returns {Promise<{globalId: string, name: string}>}
  */
-export async function findStation(query, fetchImpl = fetch, place = 'München') {
+export async function findStation(query, fetchImpl = fetch, place = 'München', transportTypes = []) {
   const url = `${BASE_URL}/locations?${new URLSearchParams({ query, locationTypes: 'STATION' })}`;
   const results = await getJson(url, fetchImpl);
   const stations = (Array.isArray(results) ? results : []).filter((r) => r.type === 'STATION' && r.globalId);
   const wantName = normalize(query);
   const wantPlace = normalize(place || 'München');
-  const score = (s) => (normalize(s.name) === wantName ? 2 : 0) + (normalize(s.place) === wantPlace ? 1 : 0);
+  // Bevorzugt Stationen, an denen die gewünschten Verkehrsmittel halten (z. B. Bahnhof statt Bushalt).
+  const servesWanted = (s) => Array.isArray(s.transportTypes) && transportTypes.some((t) => s.transportTypes.includes(t));
+  const score = (s) => (servesWanted(s) ? 4 : 0) + (normalize(s.name) === wantName ? 2 : 0) + (normalize(s.place) === wantPlace ? 1 : 0);
   // Stabile Sortierung: bei Gleichstand bleibt die Reihenfolge der MVG (Relevanz).
   const match = stations.map((s, i) => ({ s, i, score: score(s) })).sort((a, b) => b.score - a.score || a.i - b.i)[0]?.s;
   if (!match) throw new Error(`Station "${query}" nicht gefunden.`);

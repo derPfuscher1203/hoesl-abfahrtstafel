@@ -8,11 +8,14 @@ Kiosk-Webapp für Tablets mit Live-Abfahrten der MVG. Es gibt zwei Tafeln:
 | `/LTHQ` | **Alle S-Bahnen** ab Haar, getrennt nach Richtung München und Richtung Grafing |
 | `/LTHQ/stadteinwaerts` | Haar, nur Richtung München |
 | `/LTHQ/stadtauswaerts` | Haar, nur Richtung Grafing/Ebersberg |
+| `/zeno/moosburg` | Moosburg: alle Züge Richtung München und Flughafen (12 min Gehzeit) |
+| `/zeno/hp8` | Brudermühlstraße U-Bahn stadteinwärts (10 min) und alle Busse ab Schäftlarnstraße (5 min) |
 
 `/` leitet auf `/hoeslhome` um.
 
 ![Tafel /hoeslhome (Demo-Daten)](docs/screenshot.png)
 ![Tafel /LTHQ (Demo-Daten)](docs/screenshot-lthq.png)
+![Tafel /zeno/hp8 (Demo-Daten)](docs/screenshot-hp8.png)
 
 Auf dem Handy (schmaler als 640 px oder sehr niedrig) wird die Seite scrollbar, die Karten stehen
 untereinander und zeigen je fünf Abfahrten (Einzelansichten bis zu zehn):
@@ -78,13 +81,16 @@ gemountet; nach einer Änderung reicht `docker compose restart`. Die Datei enth�
 
 | Feld | Bedeutung |
 | --- | --- |
-| `boards[].id` | Teil der URL (`/hoeslhome`, `/LTHQ`) |
+| `boards[].id` | Teil der URL (`/hoeslhome`, `/LTHQ`, auch mit Unterpfad wie `zeno/hp8`) |
 | `boards[].title`, `subtitle` | Überschrift der Tafel |
 | `boards[].transportTypes` | Verkehrsmittel (`UBAHN`, `SBAHN`, auch `TRAM`, `BUS` möglich) |
 | `boards[].departuresPerStation` | Höchstzahl Abfahrten pro Karte |
 | `stations[].name` | Überschrift der Karte |
 | `stations[].slug` | Optional: Station zusätzlich einzeln unter `/<tafel>/<slug>` anzeigen |
-| `stations[].walkMinutes` | Gehzeit zur Station in Minuten |
+| `stations[].walkMinutes` | Gehzeit zur Station in Minuten (pro Tafel, dieselbe Station kann woanders eine andere Gehzeit haben) |
+| `stations[].transportTypes` | Optional: Verkehrsmittel nur für diese Station (z. B. `["BUS"]`), sonst die der Tafel |
+| `stations[].provider` | Datenquelle: `mvg` (Standard) oder `db` |
+| `stations[].fallbackProvider` | Optional: Ausweichquelle, wenn die erste Quelle ausfällt oder nichts liefert |
 | `stations[].query`, `place` | Suchbegriff und Ort für die MVG-Stationssuche |
 | `stations[].globalId` | Optional: feste MVG-ID (z. B. `de:09162:6`), überspringt die Suche |
 | `stations[].directions.<TYP>.exclude` | Ziele, die ausgeblendet werden |
@@ -106,6 +112,7 @@ Umgebungsvariablen: `PORT` (Standard 8080), `CONFIG_PATH`, `MVG_MOCK=1` (Demo-Da
 
 - `src/server.js`: kleiner Node-Server ohne Laufzeit-Abhängigkeiten. Liefert die Tafeln (`/<id>` bzw. `/<id>/<slug>`), je ein Manifest (`/manifest/<id>[/<slug>].webmanifest`) und die Daten (`/api/boards/<id>[/<slug>]`) aus.
 - `src/mvg.js`: Zugriff auf die öffentliche MVG-API (`https://www.mvg.de/api/bgw-pt/v3`, Endpunkte `locations` und `departures`).
+- `src/db.js`: Ausweichquelle für Regional- und Fernzüge über die DB-HAFAS-REST-API (`v6.db.transport.rest`, einstellbar mit `DB_REST_URL`). Moosburg fragt zuerst die MVG (Verkehrsmittel `BAHN`) und nutzt die DB, falls die MVG dort nichts liefert.
 - `src/lineColors.js`: lädt und cached die Linienfarben aus Träwelling line-colors, mit eingebautem Fallback.
 - `src/board.js`: Abruf aller Stationen je Tafel, Filterung, 20 s Cache (mehrere Tablets erzeugen keine Mehrlast).
   Ist die MVG nicht erreichbar, wird der letzte Stand als veraltet angezeigt.

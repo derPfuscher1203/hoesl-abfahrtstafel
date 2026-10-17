@@ -88,6 +88,63 @@ test('Teilansicht zeigt nur die Station mit dem Slug', async () => {
   assert.equal(await boards.getBoard('hoeslhome', 'rein'), null);
 });
 
+test('Ausweichquelle springt ein, wenn die erste Quelle scheitert oder nichts liefert', async () => {
+  const cfg = validateConfig({
+    boards: [
+      {
+        id: 'zeno/moosburg',
+        transportTypes: ['BAHN'],
+        stations: [{ name: 'Moosburg', provider: 'mvg', fallbackProvider: 'db', directions: { BAHN: { include: ['München'] } } }],
+      },
+    ],
+  });
+  const train = (destination) => ({ line: 'RB 33', transportType: 'BAHN', destination, departureTime: NOW + 600_000 });
+  const dbProvider = {
+    findStation: async () => ({ globalId: '8004136' }),
+    fetchDepartures: async () => [train('München Hbf'), train('Landshut (Bay) Hbf')],
+  };
+  // MVG liefert nichts -> DB
+  const empty = { findStation: async () => ({ globalId: 'de:1' }), fetchDepartures: async () => [] };
+  let boards = createBoards(cfg, { mvg: empty, db: dbProvider, now: () => NOW });
+  let st = (await boards.getBoard('zeno/moosburg')).stations[0];
+  assert.equal(st.source, 'db');
+  assert.deepEqual(st.departures.map((d) => d.destination), ['München Hbf']);
+  // MVG wirft -> DB
+  const failing = { findStation: async () => { throw new Error('nicht gefunden'); }, fetchDepartures: async () => [] };
+  boards = createBoards(cfg, { mvg: failing, db: dbProvider, now: () => NOW });
+  st = (await boards.getBoard('zeno/moosburg')).stations[0];
+  assert.equal(st.source, 'db');
+  assert.equal(st.stale, false);
+});
+
+test('Verkehrsmittel pro Station überschreiben die der Tafel', async () => {
+  const cfg = validateConfig({
+    boards: [
+      {
+        id: 'zeno/hp8',
+        stations: [
+          { name: 'U', query: 'A', transportTypes: ['UBAHN'] },
+          { name: 'Bus', query: 'B', transportTypes: ['BUS'] },
+        ],
+      },
+    ],
+  });
+  const seen = [];
+  const mvg = {
+    findStation: async (q) => ({ globalId: q }),
+    fetchDepartures: async (id, { transportTypes }) => {
+      seen.push(`${id}:${transportTypes.join(',')}`);
+      return [
+        { line: 'U3', transportType: 'UBAHN', destination: 'Moosach', departureTime: NOW + 60_000 },
+        { line: '54', transportType: 'BUS', destination: 'Lorettoplatz', departureTime: NOW + 60_000 },
+      ];
+    },
+  };
+  const { stations } = await createBoards(cfg, { mvg, now: () => NOW }).getBoard('zeno/hp8');
+  assert.deepEqual(seen.sort(), ['A:UBAHN', 'B:BUS']);
+  assert.deepEqual(stations.map((s) => s.departures.map((d) => d.line)), [['U3'], ['54']]);
+});
+
 test('cached Ergebnisse und löst die Station nur einmal auf', async () => {
   let t = NOW;
   const mvg = fakeMvg();
@@ -127,6 +184,9 @@ test('ohne vorherigen Stand gibt es eine leere Liste mit Fehler', async () => {
 test('Konfiguration wird geprüft', () => {
   assert.throws(() => validateConfig({ boards: [] }), /mindestens eine Tafel/);
   assert.throws(() => validateConfig({ boards: [{ id: 'a b', stations: [{ name: 'x' }] }] }), /"id"/);
+  assert.throws(() => validateConfig({ boards: [{ id: 'a//b', stations: [{ name: 'x' }] }] }), /"id"/);
+  assert.equal(validateConfig({ boards: [{ id: 'zeno/hp8', stations: [{ name: 'x' }] }] }).boards[0].id, 'zeno/hp8');
+  assert.throws(() => validateConfig({ boards: [{ id: 'a', stations: [{ name: 'x', provider: 'vbb' }] }] }), /provider/);
   assert.throws(
     () => validateConfig({ boards: [{ id: 'a', stations: [{ name: 'x' }] }, { id: 'A', stations: [{ name: 'y' }] }] }),
     /doppelt/,

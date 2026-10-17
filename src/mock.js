@@ -23,6 +23,19 @@ const LINES = {
     ['S4', 'SBAHN', 'Ebersberg'],
     ['S4', 'SBAHN', 'Trudering'],
   ],
+  'mock:moosburg': [
+    ['RB33', 'BAHN', 'München Hbf'],
+    ['RE22', 'BAHN', 'Regensburg Hbf'],
+    ['RE22', 'BAHN', 'München Flughafen Terminal'],
+    ['RB33', 'BAHN', 'Landshut (Bay) Hbf'],
+    ['RE2', 'BAHN', 'München Hbf'],
+  ],
+  'mock:schaeftlarnstrasse': [
+    ['54', 'BUS', 'Lorettoplatz'],
+    ['54', 'BUS', 'Münchner Freiheit'],
+    ['132', 'BUS', 'Forstenrieder Allee'],
+    ['N41', 'BUS', 'Hauptbahnhof Nord'],
+  ],
   'mock:brudermuehlstrasse': [
     ['U3', 'UBAHN', 'Moosach'],
     ['U3', 'UBAHN', 'Fürstenried West'],
@@ -33,7 +46,7 @@ const LINES = {
 
 export const mockMvg = {
   async findStation(query) {
-    const key = query.toLowerCase().replace('ü', 'ue').replace('ß', 'ss').replace(/\s+/g, '');
+    const key = query.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/\s+/g, '');
     return { globalId: `mock:${key}`, name: query };
   },
   async fetchDepartures(globalId) {

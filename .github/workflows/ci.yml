@@ -56,6 +56,8 @@ jobs:
           curl -fsS http://localhost:8080/api/boards/LTHQ | jq -e '.stations | length == 2'
           curl -fsS http://localhost:8080/LTHQ/stadteinwaerts | grep -q "Richtung München"
           curl -fsS http://localhost:8080/api/boards/LTHQ/stadtauswaerts | jq -e '.stations | length == 1'
+          curl -fsS http://localhost:8080/zeno/moosburg | grep -q "Moosburg"
+          curl -fsS http://localhost:8080/api/boards/zeno/hp8 | jq -e '.stations | length == 2'
       - name: Logs bei Fehler
         if: failure()
         run: docker logs smoke

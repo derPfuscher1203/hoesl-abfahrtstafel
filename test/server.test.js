@@ -13,6 +13,7 @@ const boardList = [
       { name: 'Richtung Grafing', slug: 'stadtauswaerts' },
     ],
   },
+  { id: 'zeno/hp8', title: 'HP8', subtitle: 'U-Bahn und Busse', stations: [{ name: 'Schäftlarnstraße', slug: 'bus' }] },
 ];
 const findBoard = (id) => boardList.find((b) => b.id.toLowerCase() === String(id).toLowerCase()) ?? null;
 const findView = (b, slug) => b?.stations.find((s) => s.slug?.toLowerCase() === String(slug).toLowerCase()) ?? null;
@@ -86,6 +87,19 @@ test('Teilansichten /LTHQ/stadteinwaerts und /LTHQ/stadtauswaerts', async () => 
 
   const list = await (await fetch(`${base}/api/boards`)).json();
   assert.deepEqual(list[1].views.map((v) => v.url), ['/LTHQ/stadteinwaerts', '/LTHQ/stadtauswaerts']);
+});
+
+test('Tafeln mit Unterpfad (/zeno/hp8) samt Teilansicht, API und Manifest', async () => {
+  const res = await fetch(`${base}/zeno/hp8`);
+  assert.equal(res.status, 200);
+  assert.match(await res.text(), /data-board="zeno\/hp8"/);
+  assert.equal((await fetch(`${base}/Zeno/HP8`, { redirect: 'manual' })).headers.get('location'), '/zeno/hp8');
+  assert.equal((await (await fetch(`${base}/api/boards/zeno/hp8`)).json()).board.id, 'zeno/hp8');
+  assert.equal((await fetch(`${base}/zeno/hp8/bus`)).status, 200);
+  assert.deepEqual((await (await fetch(`${base}/api/boards/zeno/hp8/bus`)).json()).stations.map((s) => s.name), ['Schäftlarnstraße']);
+  assert.equal((await (await fetch(`${base}/manifest/zeno/hp8.webmanifest`)).json()).start_url, '/zeno/hp8');
+  assert.equal((await fetch(`${base}/zeno`)).status, 404);
+  assert.equal((await fetch(`${base}/zeno/gibtsnicht`)).status, 404);
 });
 
 test('API liefert Tafel-Daten mit Version, ohne Caching', async () => {

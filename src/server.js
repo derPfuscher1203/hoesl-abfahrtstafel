@@ -97,14 +97,22 @@ function redirect(res, status, location) {
   res.end();
 }
 
-/** Löst "/<tafel>" bzw. "/<tafel>/<slug>" auf; null, wenn es das nicht gibt. */
-function resolvePage(boards, id, slug) {
-  const board = boards.findBoard(id);
-  if (!board) return null;
-  if (slug == null) return { board, view: null };
-  const view = boards.findView(board, slug);
-  return view ? { board, view } : null;
+/**
+ * Löst einen Pfad wie "hoeslhome", "zeno/hp8" oder "LTHQ/stadteinwaerts" auf:
+ * zuerst als ganze Tafel-ID, sonst letztes Segment als Teilansicht. null, wenn es das nicht gibt.
+ */
+function resolvePage(boards, path) {
+  const clean = String(path).replace(/\/+$/, '');
+  const board = boards.findBoard(clean);
+  if (board) return { board, view: null };
+  const cut = clean.lastIndexOf('/');
+  if (cut < 0) return null;
+  const parent = boards.findBoard(clean.slice(0, cut));
+  const view = parent && boards.findView(parent, clean.slice(cut + 1));
+  return view ? { board: parent, view } : null;
 }
+
+const PAGE_PATH = /^\/((?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+)\/?$/;
 
 export function createApp(boards, lineColors = null) {
   return createServer(async (req, res) => {
@@ -127,27 +135,26 @@ export function createApp(boards, lineColors = null) {
           })),
         );
       }
-      const apiMatch = pathname.match(/^\/api\/boards\/([^/]+)(?:\/([^/]+))?$/);
+      const apiMatch = pathname.match(/^\/api\/boards\/(.+)$/);
       if (apiMatch || pathname === '/api/departures') {
-        const data = apiMatch
-          ? await boards.getBoard(decodeURIComponent(apiMatch[1]), apiMatch[2] && decodeURIComponent(apiMatch[2]))
-          : await boards.getBoard(boards.boards[0].id);
+        const page = apiMatch ? resolvePage(boards, decodeURIComponent(apiMatch[1])) : { board: boards.boards[0], view: null };
+        const data = page && (await boards.getBoard(page.board.id, page.view?.slug ?? undefined));
         if (!data) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
         const lineStyles = lineColors ? lineColors.stylesFor(data.stations) : {};
         return sendJson(res, 200, { ...data, lineStyles, version: VERSION });
       }
 
-      const manifestMatch = pathname.match(/^\/manifest\/([^/]+?)(?:\/([^/]+?))?\.webmanifest$/);
+      const manifestMatch = pathname.match(/^\/manifest\/(.+)\.webmanifest$/);
       if (manifestMatch) {
-        const page = resolvePage(boards, decodeURIComponent(manifestMatch[1]), manifestMatch[2] && decodeURIComponent(manifestMatch[2]));
+        const page = resolvePage(boards, decodeURIComponent(manifestMatch[1]));
         if (!page) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
         return sendJson(res, 200, manifestFor(page.board, page.view), MIME['.webmanifest']);
       }
 
       if (pathname === '/' || pathname === '/index.html') return redirect(res, 302, `/${boards.boards[0].id}`);
 
-      const pageMatch = pathname.match(/^\/([A-Za-z0-9_-]+)(?:\/([A-Za-z0-9_-]+))?\/?$/);
-      const page = pageMatch && resolvePage(boards, pageMatch[1], pageMatch[2]);
+      const pageMatch = pathname.match(PAGE_PATH);
+      const page = pageMatch && resolvePage(boards, pageMatch[1]);
       if (page) {
         // Schreibweise vereinheitlichen (/lthq -> /LTHQ), damit die PWA nur eine URL kennt.
         const canonical = `/${pagePath(page.board, page.view)}`;
@@ -168,6 +175,7 @@ async function main() {
   if (process.env.MVG_MOCK === '1') {
     const { mockMvg } = await import('./mock.js');
     options.mvg = mockMvg;
+    options.db = mockMvg;
     console.log('Demo-Modus: es werden Beispieldaten statt MVG-Daten angezeigt.');
   }
   const boards = createBoards(config, options);
@@ -178,7 +186,7 @@ async function main() {
   const server = createApp(boards, lineColors).listen(port, () => {
     console.log(`Abfahrtstafel ${VERSION} läuft auf http://0.0.0.0:${port}`);
     for (const b of config.boards) {
-      console.log(`  /${b.id}  ${b.title}`);
+      console.log(`  /${b.id}  ${b.title}${b.subtitle ? ` – ${b.subtitle}` : ''}`);
       for (const s of b.stations) if (s.slug) console.log(`  /${b.id}/${s.slug}  ${s.name}`);
     }
   });

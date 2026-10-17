@@ -48,6 +48,12 @@ test('Standardkonfiguration: Richtungen der drei Stationen', async () => {
     ['Richtung Grafing', 'SBAHN', 'Grafing Bahnhof', true],
     ['Richtung Grafing', 'SBAHN', 'Ebersberg', true],
     ['Richtung Grafing', 'SBAHN', 'Geltendorf', false],
+    ['Moosburg Bahnhof', 'BAHN', 'München Hbf', true],
+    ['Moosburg Bahnhof', 'BAHN', 'München Flughafen Terminal', true],
+    ['Moosburg Bahnhof', 'BAHN', 'Freising', true],
+    ['Moosburg Bahnhof', 'BAHN', 'Regensburg Hbf', false],
+    ['Moosburg Bahnhof', 'BAHN', 'Landshut (Bay) Hbf', false],
+    ['Moosburg Bahnhof', 'BAHN', 'Passau Hbf', false],
   ];
   for (const [station, transportType, destination, expected] of cases) {
     assert.equal(isInbound({ transportType, destination }, byName[station]), expected, `${station} → ${destination}`);

@@ -40,6 +40,14 @@ export const FALLBACK = {
   'SBAHN:S20': s('#f05972'),
 };
 
+/** Neutrale Farben je Verkehrsmittel für Linien ohne eigenen Eintrag (z. B. Regionalzüge). */
+export const TYPE_FALLBACK = {
+  BAHN: { background: '#5b6573', text: '#ffffff', border: null, shape: 'rectangle-rounded-corner' },
+  BUS: { background: '#325868', text: '#ffffff', border: null, shape: 'rectangle' },
+  REGIONAL_BUS: { background: '#325868', text: '#ffffff', border: null, shape: 'rectangle' },
+  TRAM: { background: '#e30613', text: '#ffffff', border: null, shape: 'rectangle' },
+};
+
 /** Minimaler CSV-Parser nach RFC 4180 (Anführungszeichen, "" als Escape, Zeilenumbrüche in Feldern). */
 export function parseCsv(text) {
   const rows = [];
@@ -141,7 +149,7 @@ export function createLineColors({ url = process.env.LINE_COLORS_URL || DEFAULT_
     refresh,
     style(transportType, line) {
       const key = `${transportType}:${String(line ?? '').replace(/\s+/g, '')}`;
-      return colors[key] ?? FALLBACK[key] ?? null;
+      return colors[key] ?? FALLBACK[key] ?? TYPE_FALLBACK[transportType] ?? null;
     },
     /** Stile für alle Linien, die in den Abfahrten vorkommen. */
     stylesFor(stations) {
