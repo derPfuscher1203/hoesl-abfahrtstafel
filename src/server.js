@@ -4,6 +4,7 @@ import { extname, join, normalize as normalizePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBoards } from './board.js';
 import { loadConfig } from './config.js';
+import { createLineColors } from './lineColors.js';
 
 const PUBLIC_DIR = fileURLToPath(new URL('../public/', import.meta.url));
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
@@ -105,12 +106,14 @@ function resolvePage(boards, id, slug) {
   return view ? { board, view } : null;
 }
 
-export function createApp(boards) {
+export function createApp(boards, lineColors = null) {
   return createServer(async (req, res) => {
     try {
       const { pathname } = new URL(req.url, 'http://x');
       if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method not allowed' });
       if (pathname === '/healthz') return sendJson(res, 200, { status: 'ok', version: VERSION });
+
+      if (pathname === '/api/line-colors') return sendJson(res, 200, lineColors ? lineColors.info() : { source: 'none' });
 
       if (pathname === '/api/boards') {
         return sendJson(
@@ -130,7 +133,8 @@ export function createApp(boards) {
           ? await boards.getBoard(decodeURIComponent(apiMatch[1]), apiMatch[2] && decodeURIComponent(apiMatch[2]))
           : await boards.getBoard(boards.boards[0].id);
         if (!data) return sendJson(res, 404, { error: 'Tafel nicht gefunden' });
-        return sendJson(res, 200, { ...data, version: VERSION });
+        const lineStyles = lineColors ? lineColors.stylesFor(data.stations) : {};
+        return sendJson(res, 200, { ...data, lineStyles, version: VERSION });
       }
 
       const manifestMatch = pathname.match(/^\/manifest\/([^/]+?)(?:\/([^/]+?))?\.webmanifest$/);
@@ -167,15 +171,21 @@ async function main() {
     console.log('Demo-Modus: es werden Beispieldaten statt MVG-Daten angezeigt.');
   }
   const boards = createBoards(config, options);
+  const lineColors = createLineColors();
+  // Nicht blockierend: bis die CSV da ist (oder falls sie nie kommt), gelten die eingebauten Farben.
+  lineColors.start();
   const port = Number(process.env.PORT) || 8080;
-  const server = createApp(boards).listen(port, () => {
+  const server = createApp(boards, lineColors).listen(port, () => {
     console.log(`Abfahrtstafel ${VERSION} läuft auf http://0.0.0.0:${port}`);
     for (const b of config.boards) {
       console.log(`  /${b.id}  ${b.title}`);
       for (const s of b.stations) if (s.slug) console.log(`  /${b.id}/${s.slug}  ${s.name}`);
     }
   });
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => {
+    lineColors.stop();
+    server.close(() => process.exit(0));
+  };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }

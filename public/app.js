@@ -1,23 +1,3 @@
-// Linienfarben nach MVG/MVV-Liniennetz.
-const LINE_COLORS = {
-  U1: '#3c7233',
-  U2: '#c4022e',
-  U3: '#ed6720',
-  U4: '#00a984',
-  U5: '#bc7a00',
-  U6: '#0065ae',
-  U7: '#3c7233',
-  U8: '#c4022e',
-  S1: '#16bae7',
-  S2: '#76b82a',
-  S3: '#951b81',
-  S4: '#e30613',
-  S6: '#00975f',
-  S7: '#943126',
-  S8: '#000000',
-  S20: '#ea516d',
-};
-
 const MINUTE = 60_000;
 // Ab hier heißt es "Jetzt los!" (Sekunden bis zum Losgehen).
 const GO_NOW_MS = 90_000;
@@ -57,9 +37,17 @@ function el(tag, className, text) {
   return node;
 }
 
+// Farben und Form kommen vom Server (Träwelling line-colors, mit eingebautem Fallback).
+const SHAPES = new Set(['pill', 'circle', 'rectangle', 'rectangle-rounded-corner', 'hexagon', 'trapezoid']);
+
 function badge(dep) {
-  const b = el('span', 'badge ' + (dep.transportType === 'SBAHN' ? 'sbahn' : 'ubahn'), dep.line);
-  b.style.background = LINE_COLORS[dep.line] || '#555';
+  const style = data?.lineStyles?.[`${dep.transportType}:${dep.line}`];
+  const fallbackShape = dep.transportType === 'SBAHN' ? 'pill' : 'rectangle';
+  const shape = SHAPES.has(style?.shape) ? style.shape : fallbackShape;
+  const b = el('span', `badge shape-${shape}`, dep.line);
+  b.style.background = style?.background || '#555';
+  b.style.color = style?.text || '#fff';
+  if (style?.border) b.style.boxShadow = `inset 0 0 0 2px ${style.border}`;
   return b;
 }
 

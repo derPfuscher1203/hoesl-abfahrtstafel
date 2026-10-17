@@ -27,7 +27,11 @@ const boards = {
     return { board: { id: b.id, title: b.title, view: slug ?? null }, generatedAt: 1, refreshSeconds: 30, stations };
   },
 };
-const server = createApp(boards).listen(0);
+const lineColors = {
+  stylesFor: () => ({ 'SBAHN:S4': { background: '#e41f28', text: '#ffffff', border: null, shape: 'pill' } }),
+  info: () => ({ source: 'test', updatedAt: 1, lines: 1 }),
+};
+const server = createApp(boards, lineColors).listen(0);
 const base = `http://127.0.0.1:${server.address().port}`;
 after(() => server.close());
 
@@ -90,6 +94,8 @@ test('API liefert Tafel-Daten mit Version, ohne Caching', async () => {
   assert.equal(res.headers.get('cache-control'), 'no-store');
   const body = await res.json();
   assert.equal(body.board.id, 'LTHQ');
+  assert.equal(body.lineStyles['SBAHN:S4'].background, '#e41f28');
+  assert.equal((await (await fetch(`${base}/api/line-colors`)).json()).source, 'test');
   assert.equal(body.version, VERSION);
   assert.equal((await fetch(`${base}/api/boards/nope`)).status, 404);
   assert.equal((await (await fetch(`${base}/api/departures`)).json()).board.id, 'hoeslhome');

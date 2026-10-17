@@ -29,6 +29,16 @@ Jede Station hat eine Gehzeit (`walkMinutes`). Daraus rechnet die Tafel, wann ma
 - In der Liste steht unter jeder Abfahrtszeit „los in X“.
 - Züge, die man zu Fuß nicht mehr schafft, werden ausgeblendet.
 
+## Linienfarben
+
+Farbe und Form der Linien-Badges kommen aus dem Projekt
+[Träwelling line-colors](https://traewelling.github.io/line-colors/). Der Server lädt die CSV
+(`raw.githubusercontent.com/Traewelling/line-colors/main/line-colors.csv`) beim Start und danach
+täglich, nutzt die Betreiber `mvv-mvg-ubahn`, `mvv-db-sbm`, `mvv-mvg-tram` und `mvv-mvg-bus` und
+gibt die Farben mit den Abfahrten an die Tablets. Ist die Datei nicht erreichbar, gelten eingebaute
+Farben; nach einem Fehler wird alle 15 Minuten erneut versucht. Den aktuellen Stand zeigt
+`/api/line-colors`. Eine andere Quelle lässt sich mit `LINE_COLORS_URL` einstellen.
+
 ## Starten
 
 ```bash
@@ -90,12 +100,13 @@ Der Vergleich ist tolerant gegenüber Groß-/Kleinschreibung, Umlauten und „St
 Taucht ein neues Ziel auf, das falsch einsortiert wird, einfach in die passende Liste eintragen.
 
 Umgebungsvariablen: `PORT` (Standard 8080), `CONFIG_PATH`, `MVG_MOCK=1` (Demo-Daten ohne Internet),
-`APP_VERSION` (feste Versionskennung statt Startzeit).
+`APP_VERSION` (feste Versionskennung statt Startzeit), `LINE_COLORS_URL` (Quelle der Linienfarben).
 
 ## Architektur
 
 - `src/server.js`: kleiner Node-Server ohne Laufzeit-Abhängigkeiten. Liefert die Tafeln (`/<id>` bzw. `/<id>/<slug>`), je ein Manifest (`/manifest/<id>[/<slug>].webmanifest`) und die Daten (`/api/boards/<id>[/<slug>]`) aus.
 - `src/mvg.js`: Zugriff auf die öffentliche MVG-API (`https://www.mvg.de/api/bgw-pt/v3`, Endpunkte `locations` und `departures`).
+- `src/lineColors.js`: lädt und cached die Linienfarben aus Träwelling line-colors, mit eingebautem Fallback.
 - `src/board.js`: Abruf aller Stationen je Tafel, Filterung, 20 s Cache (mehrere Tablets erzeugen keine Mehrlast).
   Ist die MVG nicht erreichbar, wird der letzte Stand als veraltet angezeigt.
 - `public/`: Oberfläche (HTML/CSS/JS), Manifest und Service Worker für die Installation als App.

@@ -243,8 +243,25 @@ h1 {
   background: #555;
 }
 
-.badge.sbahn {
+.badge.shape-pill,
+.badge.shape-circle {
   border-radius: 999px;
+}
+
+.badge.shape-rectangle-rounded-corner {
+  border-radius: 10px;
+}
+
+.badge.shape-hexagon {
+  padding: 2px 14px;
+  border-radius: 0;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+}
+
+.badge.shape-trapezoid {
+  padding: 2px 14px;
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 8px 100%);
 }
 
 .dest {
